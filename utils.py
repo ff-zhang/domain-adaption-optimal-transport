@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import ot
 
 import torch
 from torch.utils.data import Dataset, ConcatDataset, DataLoader, random_split
@@ -8,6 +9,7 @@ import torchvision.transforms as v2
 
 import itertools
 import matplotlib.pyplot as plt
+from typing import Union, Callable
 
 
 def load_dataset(roots: list[str], augment: bool = False) -> Dataset:
@@ -113,6 +115,66 @@ def plot_accuracy(acc: dict[str, list[float]], title: str = None) -> None:
         plt.title(title)
 
     plt.show()
+
+
+def mle_estimator(data, targets):
+    targets = np.eye(10)[targets]
+    num_class = np.sum(targets, axis=0)
+
+    theta_mle = np.dot(data.T, targets) / num_class
+    pi_mle = num_class / data.shape[0]
+
+    return theta_mle, pi_mle
+
+
+def plot_mle(images, **kwargs):
+    fig = plt.figure(1)
+    fig.clf()
+    ax = fig.add_subplot(111)
+
+    plot_images(images, ax, **kwargs)
+
+    fig.patch.set_visible(False)
+    ax.patch.set_visible(False)
+
+    plt.show()
+
+
+def minmax(img):
+    return np.clip(img, 0, 1)
+
+
+def fit_transports(Xs: np.array, ys: np.array = None, Xt: np.array = None,  yt: np.array = None,
+                   function: Union[str, list[str]] = 'all') -> list[ot.da.BaseTransport]:
+    out = []
+
+    if function == 'all' or 'emd' in function:
+        print("Fitting EMD transport function.")
+        ot_emd = ot.da.EMDTransport()
+        ot_emd.fit(Xs, ys, Xt, yt)
+        out.append(ot_emd)
+
+    if function == 'all' or 'sinkhorn' in function:
+        print("Fitting sinkhorn transport function")
+        ot_sinkhorn = ot.da.SinkhornTransport(reg_e=1e-1)
+        ot_sinkhorn.fit(Xs, ys, Xt, yt)
+        out.append(ot_sinkhorn)
+
+    if function == 'all' or 'linear' in function:
+        print("Fitting mapping (linear) transport function.")
+        ot_mapping_linear = ot.da.MappingTransport(
+            mu=1e0, eta=1e-8, bias=True, max_iter=20, verbose=True)
+        ot_mapping_linear.fit(Xs, ys, Xt, yt)
+        out.append(ot_mapping_linear)
+
+    if function == 'all' or 'gaussian' in function:
+        print("Fitting mapping (Gaussian) transport function.")
+        ot_mapping_gaussian = ot.da.MappingTransport(
+            mu=1e0, eta=1e-2, sigma=1, bias=False, max_iter=10, verbose=True)
+        ot_mapping_gaussian.fit(Xs, ys, Xt, yt)
+        out.append(ot_mapping_gaussian)
+
+    return out
 
 
 if __name__ == '__main__':
