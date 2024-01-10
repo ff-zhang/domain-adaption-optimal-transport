@@ -15,7 +15,7 @@ def visualize_image_transport(Xs: np.array, Xt: np.array) -> None:
     Xs = np.reshape(Xs, newshape=(1, Xs.shape[0])) / (np.sum(Xs) * 10000)
     Xt = np.reshape(Xt, newshape=(1, Xt.shape[0])) / (np.sum(Xt) * 10000)
 
-    ot_emd, ot_sinkhorn, ot_mapping_linear, ot_mapping_gaussian = fit_transports(Xs, Xt)
+    ot_emd, ot_sinkhorn, ot_mapping_linear, ot_mapping_gaussian = fit_transports(Xs=Xs, Xt=Xt)
 
     # Images of output from transport functions.
     transp_Xs_emd = ot_emd.transform(Xs=Xs)
@@ -109,18 +109,17 @@ if __name__ == '__main__':
     plot_accuracy(history)
 
     # Load the (optimal) trained model.
-    model = torch.load('models/FullyConnectedNetwork/epoch-17.pt')
-    acc = test_model(model, dl_test_emnist)
+    model_mnist = torch.load('models/FullyConnectedNetwork/epoch-17.pt')
+    acc = test_model(model_mnist, dl_test_emnist)
 
     for n in range(theta_mnist.shape[1]):
         visualize_image_transport(arr_emnist[0, :], theta_mnist[:, n])
 
     # Normalize both the source and targets datasets.
-    Xs = arr_emnist / (10000 * np.sum(arr_emnist, axis=1, keepdims=True))
+    Xs = arr_emnist / np.sum(arr_emnist, axis=1, keepdims=True) * 10000
     ys = train_emnist.targets.numpy()
 
-    theta_mnist = np.reshape(theta_mnist, newshape=(theta_mnist.shape[1], theta_mnist.shape[0]))
-    Xt = theta_mnist / (10000 * np.sum(theta_mnist, axis=0, keepdims=True))
+    Xt = theta_mnist.T / np.sum(theta_mnist.T, axis=1, keepdims=True) * 10000
     yt = np.array([i for i in range(10)])
 
     ot_sinkhorn = fit_transports(Xs, ys, Xt, yt, function=['sinkhorn'])
