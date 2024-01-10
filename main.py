@@ -113,27 +113,18 @@ if __name__ == '__main__':
     acc = test_model(model, dl_test_emnist)
 
     for n in range(theta_mnist.shape[1]):
-        visualize_image_transport(arr_mnist[0, :], theta_emnist[:, n])
+        visualize_image_transport(arr_emnist[0, :], theta_mnist[:, n])
 
     # Normalize both the source and targets datasets.
-    Xs = arr_mnist / (10000 * np.sum(arr_mnist, axis=1, keepdims=True))
-    ys = train_mnist.targets.numpy()
+    Xs = arr_emnist / (10000 * np.sum(arr_emnist, axis=1, keepdims=True))
+    ys = train_emnist.targets.numpy()
 
-    Xt = arr_emnist / (10000 * np.sum(arr_emnist, axis=1, keepdims=True))
-    yt = train_emnist.targets.numpy()
+    theta_mnist = np.reshape(theta_mnist, newshape=(theta_mnist.shape[1], theta_mnist.shape[0]))
+    Xt = theta_mnist / (10000 * np.sum(theta_mnist, axis=0, keepdims=True))
+    yt = np.array([i for i in range(10)])
 
-    ot_emd, ot_sinkhorn, ot_mapping_linear, ot_mapping_gaussian = fit_transports(Xs, ys, Xt, yt)
-
-    with open('models/ot_emd.pkl', 'wb') as f:
-        pickle.dump(ot_emd, f)
-
+    ot_sinkhorn = fit_transports(Xs, ys, Xt, yt, function=['sinkhorn'])
     with open('models/ot_sinkhorn.pkl', 'wb') as f:
         pickle.dump(ot_sinkhorn, f)
-
-    with open('models/ot_mapping_linear.pkl', 'wb') as f:
-        pickle.dump(ot_mapping_linear, f)
-
-    with open('models/ot_mapping_gaussian.pkl', 'wb') as f:
-        pickle.dump(ot_mapping_gaussian, f)
 
     print('hello world!')
